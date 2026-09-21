@@ -1,4 +1,3 @@
-import { useState, useEffect, useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -13,50 +12,25 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Header } from "@/components/Header";
 import { TodoForm } from "@/components/TodoForm";
 import { TodoList } from "@/components/TodoList";
-import type { Todo } from "@/types";
-import {
-  getTodos,
-  addTodo,
-  toggleTodo,
-  updateTodoText,
-  deleteTodo,
-} from "@/services/api";
+import { useTodo } from "@/context/TodoContext";
 
 export default function Index() {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchTodos = async (isRefresh = false) => {
-    try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-      setError(null);
-      const data = await getTodos();
-      setTodos(data);
-    } catch (err) {
-      setError(
-        "Не вдалося з'єднатися з сервером. Переконайтеся, що json-server запущено (порт 3000).",
-      );
-      console.error(err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTodos();
-  }, []);
+  const {
+    todos,
+    loading,
+    refreshing,
+    error,
+    stats,
+    fetchTodos,
+    addTodo,
+    toggleTodo,
+    updateTodo,
+    deleteTodo,
+  } = useTodo();
 
   const handleAdd = async (text: string) => {
     try {
-      const newTodo = await addTodo(text);
-      setTodos((prev) => [...prev, newTodo]);
+      await addTodo(text);
     } catch (err) {
       Alert.alert("Помилка", "Не вдалося створити завдання.");
       console.error(err);
@@ -65,14 +39,8 @@ export default function Index() {
 
   const handleToggle = async (id: string, completed: boolean) => {
     try {
-      setTodos((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, completed } : t)),
-      );
       await toggleTodo(id, completed);
     } catch (err) {
-      setTodos((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, completed: !completed } : t)),
-      );
       Alert.alert("Помилка", "Не вдалося оновити статус завдання.");
       console.error(err);
     }
@@ -80,10 +48,8 @@ export default function Index() {
 
   const handleEdit = async (id: string, text: string) => {
     try {
-      setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, text } : t)));
-      await updateTodoText(id, text);
+      await updateTodo(id, text);
     } catch (err) {
-      fetchTodos();
       Alert.alert("Помилка", "Не вдалося оновити текст завдання.");
       console.error(err);
     }
@@ -91,19 +57,12 @@ export default function Index() {
 
   const handleDelete = async (id: string) => {
     try {
-      setTodos((prev) => prev.filter((t) => t.id !== id));
       await deleteTodo(id);
     } catch (err) {
-      fetchTodos();
       Alert.alert("Помилка", "Не вдалося видалити завдання.");
       console.error(err);
     }
   };
-
-  const completedCount = useMemo(
-    () => todos.filter((t) => t.completed).length,
-    [todos],
-  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -112,19 +71,19 @@ export default function Index() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.card}>
-          <Header totalCount={todos.length} completedCount={completedCount} />
+          <Header totalCount={stats.total} completedCount={stats.completed} />
 
           {error && (
             <View style={styles.errorBanner}>
               <View style={styles.errorTextContainer}>
-                <Text style={styles.errorTitle}>{"⚠️ Помилка з'єднання"}</Text>
+                <Text style={styles.errorTitle}>{"⚠️ Повідомлення"}</Text>
                 <Text style={styles.errorDesc}>{error}</Text>
               </View>
               <TouchableOpacity
                 style={styles.retryBtn}
                 onPress={() => fetchTodos()}
               >
-                <Text style={styles.retryBtnText}>Повторити</Text>
+                <Text style={styles.retryBtnText}>Оновити</Text>
               </TouchableOpacity>
             </View>
           )}
