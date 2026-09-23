@@ -1,3 +1,4 @@
+import React from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -5,102 +6,82 @@ import {
   Platform,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Header } from "@/components/Header";
 import { TodoForm } from "@/components/TodoForm";
 import { TodoList } from "@/components/TodoList";
-import { useTodo } from "@/context/TodoContext";
 
 export default function Index() {
-  const {
-    todos,
-    loading,
-    refreshing,
-    error,
-    stats,
-    fetchTodos,
-    addTodo,
-    toggleTodo,
-    updateTodo,
-    deleteTodo,
-  } = useTodo();
+  const todos = useQuery(api.todos.getTodos);
+
+  const addTodo = useMutation(api.todos.createTodo);
+  const toggleTodo = useMutation(api.todos.toggleTodo);
+  const deleteTodo = useMutation(api.todos.deleteTodo);
+  const updateTodo = useMutation(api.todos.updateTodo);
 
   const handleAdd = async (text: string) => {
     try {
-      await addTodo(text);
-    } catch (err) {
-      Alert.alert("Помилка", "Не вдалося створити завдання.");
+      await addTodo({ text });
+    } catch (err: any) {
+      Alert.alert("Помилка", err?.data ?? "Не вдалося створити завдання.");
       console.error(err);
     }
   };
 
-  const handleToggle = async (id: string, completed: boolean) => {
+  const handleToggle = async (id: string) => {
     try {
-      await toggleTodo(id, completed);
-    } catch (err) {
+      await toggleTodo({ id: id as any });
+    } catch (err: any) {
       Alert.alert("Помилка", "Не вдалося оновити статус завдання.");
-      console.error(err);
-    }
-  };
-
-  const handleEdit = async (id: string, text: string) => {
-    try {
-      await updateTodo(id, text);
-    } catch (err) {
-      Alert.alert("Помилка", "Не вдалося оновити текст завдання.");
       console.error(err);
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteTodo(id);
-    } catch (err) {
+      await deleteTodo({ id: id as any });
+    } catch (err: any) {
       Alert.alert("Помилка", "Не вдалося видалити завдання.");
       console.error(err);
     }
   };
 
+  const handleEdit = async (id: string, text: string) => {
+    try {
+      await updateTodo({ id: id as any, text });
+    } catch (err: any) {
+      Alert.alert("Помилка", err?.data ?? "Не вдалося оновити текст завдання.");
+      console.error(err);
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.card}>
-          <Header totalCount={stats.total} completedCount={stats.completed} />
+          <Header
+            totalCount={todos?.length ?? 0}
+            completedCount={todos?.filter((t) => t.isCompleted).length ?? 0}
+          />
 
-          {error && (
-            <View style={styles.errorBanner}>
-              <View style={styles.errorTextContainer}>
-                <Text style={styles.errorTitle}>{"⚠️ Повідомлення"}</Text>
-                <Text style={styles.errorDesc}>{error}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.retryBtn}
-                onPress={() => fetchTodos()}
-              >
-                <Text style={styles.retryBtnText}>Оновити</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          <TodoForm onAdd={handleAdd} />
 
-          <TodoForm onAdd={handleAdd} loading={loading} />
-
-          {loading && !refreshing && todos.length === 0 ? (
-            <View style={styles.loadingContainer}>
+          {todos === undefined ? (
+            <View style={styles.centerContainer}>
               <ActivityIndicator size="large" color="#6366f1" />
-              <Text style={styles.loadingText}>Завантаження...</Text>
+              <Text style={styles.loadingText}>Синхронізація з Convex...</Text>
             </View>
           ) : (
             <View style={styles.listWrapper}>
               <TodoList
                 todos={todos}
-                refreshing={refreshing}
-                onRefresh={() => fetchTodos(true)}
                 onToggle={handleToggle}
                 onDelete={handleDelete}
                 onEdit={handleEdit}
@@ -131,7 +112,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderRadius: 16,
     paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingVertical: 20,
     borderWidth: 1,
     borderColor: "#e2e8f0",
     shadowColor: "#000",
@@ -140,55 +121,16 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 4,
   },
-  errorBanner: {
-    backgroundColor: "#fef2f2",
-    borderWidth: 1,
-    borderColor: "#fecaca",
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  errorTextContainer: {
+  centerContainer: {
     flex: 1,
-  },
-  errorTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#991b1b",
-    marginBottom: 4,
-  },
-  errorDesc: {
-    fontSize: 13,
-    color: "#991b1b",
-    lineHeight: 18,
-  },
-  retryBtn: {
-    backgroundColor: "#dc2626",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  retryBtnText: {
-    color: "#ffffff",
-    fontWeight: "600",
-    fontSize: 13,
-  },
-  loadingContainer: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 40,
-    gap: 12,
   },
   loadingText: {
+    marginTop: 12,
     color: "#64748b",
-    fontSize: 15,
+    fontSize: 14,
   },
   listWrapper: {
     flex: 1,

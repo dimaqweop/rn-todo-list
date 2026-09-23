@@ -1,8 +1,7 @@
 import React from "react";
 import {
+  ActivityIndicator,
   Alert,
-  Platform,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,13 +10,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useTodo } from "@/context/TodoContext";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export default function StatsScreen() {
-  const { stats, refreshing, fetchTodos, clearCompleted } = useTodo();
+  const stats = useQuery(api.todos.getStats);
+  const clearCompleted = useMutation(api.todos.clearCompleted);
 
   const handleClearCompleted = () => {
-    if (stats.completed === 0) return;
+    if (!stats || stats.completed === 0) return;
 
     Alert.alert(
       "Очищення завдань",
@@ -27,14 +28,22 @@ export default function StatsScreen() {
         {
           text: "Видалити",
           style: "destructive",
-          onPress: () => clearCompleted(),
+          onPress: async () => {
+            try {
+              const res = await clearCompleted();
+              Alert.alert("Успішно", `Видалено ${res?.deletedCount ?? stats.completed} завдань`);
+            } catch (err) {
+              Alert.alert("Помилка", "Не вдалося очистити виконані завдання");
+              console.error(err);
+            }
+          },
         },
       ]
     );
   };
 
-  const getMotivationalMessage = () => {
-    if (stats.total === 0) {
+  const getMotivationalMessage = (total: number, completed: number, percentage: number) => {
+    if (total === 0) {
       return {
         title: "Немає завдань",
         desc: "Перейдіть на вкладку «Завдання» та додайте свою першу ціль!",
@@ -42,7 +51,7 @@ export default function StatsScreen() {
         color: "#6366f1",
       };
     }
-    if (stats.percentage === 100) {
+    if (percentage === 100) {
       return {
         title: "Чудова робота! 🏆",
         desc: "Всі завдання успішно виконано. Час відпочити або поставити нові цілі!",
@@ -50,7 +59,7 @@ export default function StatsScreen() {
         color: "#10b981",
       };
     }
-    if (stats.percentage >= 50) {
+    if (percentage >= 50) {
       return {
         title: "Гарний темп! 🚀",
         desc: "Більше половини завдань уже завершено. Продовжуйте в тому ж дусі!",
@@ -66,21 +75,22 @@ export default function StatsScreen() {
     };
   };
 
-  const motivation = getMotivationalMessage();
+  if (stats === undefined) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>Завантаження статистики...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const motivation = getMotivationalMessage(stats.total, stats.completed, stats.percentage);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => fetchTodos(true)}
-            tintColor="#6366f1"
-            colors={["#6366f1"]}
-          />
-        }
-      >
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.container}>
           <View style={styles.header}>
             <View style={styles.headerTitleGroup}>
@@ -90,7 +100,7 @@ export default function StatsScreen() {
               <Text style={styles.headerTitle}>Статистика завдань</Text>
             </View>
             <Text style={styles.headerSubtitle}>
-              Аналітика вашої продуктивності та виконання завдань
+              Аналітика вашої продуктивності у реальному часі (Convex)
             </Text>
           </View>
 
@@ -241,6 +251,16 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#f5f7fb",
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#64748b",
   },
   scrollContent: {
     paddingVertical: 16,

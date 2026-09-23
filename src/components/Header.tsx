@@ -1,3 +1,4 @@
+import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 interface HeaderProps {
@@ -21,34 +22,32 @@ export function Header({ totalCount, completedCount }: HeaderProps) {
   );
 }
 
+export default Header;
+
 const styles = StyleSheet.create({
   appHeader: {
-    marginBottom: 24,
-    textAlign: "center",
+    marginBottom: 20,
+    alignItems: "center",
   },
-
   headerTitleGroup: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
     marginBottom: 6,
-  }, 
-
+  },
   headerIcon: {
     fontSize: 26,
   },
-
   headerTitle: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#1e293b',
+    fontWeight: "700",
+    color: "#1e293b",
     letterSpacing: -0.5,
   },
-
   headerSubtitle: {
-    color: '#64748b',
+    color: "#64748b",
     fontSize: 14,
-    fontWeight: 400,
-  } 
+    fontWeight: "400",
+  },
 });

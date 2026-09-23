@@ -1,30 +1,49 @@
-import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import React from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import type { Todo } from "@/types";
 import { TodoItem } from "@/components/TodoItem";
 
-interface TodoListProps {
-  todos: Todo[];
+export interface TodoListProps {
+  todos?: Todo[];
+  loading?: boolean;
   refreshing?: boolean;
-  onRefresh?: () => Promise<void>;
-  onToggle: (id: string, completed: boolean) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
-  onEdit: (id: string, text: string) => Promise<void>;
+  onRefresh?: () => Promise<any> | any;
+  onToggle?: (id: string, completed?: boolean) => Promise<any> | any;
+  onDelete?: (id: string) => Promise<any> | any;
+  onEdit?: (id: string, text: string) => Promise<any> | any;
 }
 
 export function TodoList({
   todos,
+  loading,
   refreshing,
   onRefresh,
   onToggle,
   onDelete,
   onEdit,
 }: TodoListProps) {
+  if (todos === undefined || loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#6366f1" />
+        <Text style={styles.loadingText}>Синхронізація з Convex...</Text>
+      </View>
+    );
+  }
+
   if (todos.length === 0) {
     return (
       <View style={styles.todoEmpty}>
-        <Text style={styles.emptyText}>
-          Список завдань порожній. Додайте нове завдання вище!
-        </Text>
+        <Text style={styles.emptyIcon}>✨</Text>
+        <Text style={styles.emptyTitle}>Список завдань порожній</Text>
+        <Text style={styles.emptyText}>Додайте нове завдання вище!</Text>
       </View>
     );
   }
@@ -33,7 +52,7 @@ export function TodoList({
     <FlatList
       style={styles.todoList}
       data={todos}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item, index) => (item._id ?? item.id ?? String(index)) as string}
       renderItem={({ item }) => (
         <TodoItem
           todo={item}
@@ -71,16 +90,37 @@ const styles = StyleSheet.create({
   separator: {
     height: 8,
   },
+  centerContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 48,
+    gap: 12,
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#64748b",
+  },
   todoEmpty: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 36,
+    paddingVertical: 40,
     paddingHorizontal: 16,
+    gap: 6,
+  },
+  emptyIcon: {
+    fontSize: 32,
+    marginBottom: 4,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#334155",
   },
   emptyText: {
-    color: "#94a3b8", 
-    fontSize: 16,    
+    color: "#94a3b8",
+    fontSize: 14,
     textAlign: "center",
-    lineHeight: 22,
+    lineHeight: 20,
   },
 });

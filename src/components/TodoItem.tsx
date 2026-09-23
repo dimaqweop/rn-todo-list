@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -7,19 +7,61 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import type { Todo } from "@/types";
 
-interface TodoItemProps {
+export interface TodoItemProps {
   todo: Todo;
-  onToggle: (id: string, completed: boolean) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
-  onEdit: (id: string, text: string) => Promise<void>;
+  onToggle?: (id: string, completed?: boolean) => Promise<any> | any;
+  onDelete?: (id: string) => Promise<any> | any;
+  onEdit?: (id: string, text: string) => Promise<any> | any;
 }
 
 export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
+  const todoId = (todo._id ?? (todo as any).id) as string;
+  const isCompleted = todo.isCompleted ?? (todo as any).completed ?? false;
+
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(todo.text);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Fallback to Convex mutations if callbacks are not provided
+  const toggleMutation = useMutation(api.todos.toggleTodo);
+  const deleteMutation = useMutation(api.todos.deleteTodo);
+  const updateMutation = useMutation(api.todos.updateTodo);
+
+  const handleToggle = async () => {
+    if (isUpdating) return;
+    try {
+      setIsUpdating(true);
+      if (onToggle) {
+        await onToggle(todoId, !isCompleted);
+      } else {
+        await toggleMutation({ id: todoId as any });
+      }
+    } catch (err) {
+      console.error("Failed to toggle todo:", err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (isUpdating) return;
+    try {
+      setIsUpdating(true);
+      if (onDelete) {
+        await onDelete(todoId);
+      } else {
+        await deleteMutation({ id: todoId as any });
+      }
+    } catch (err) {
+      console.error("Failed to delete todo:", err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const handleSave = async () => {
     const trimmed = editText.trim();
@@ -32,7 +74,13 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
     if (trimmed !== todo.text) {
       try {
         setIsUpdating(true);
-        await onEdit(todo.id, trimmed);
+        if (onEdit) {
+          await onEdit(todoId, trimmed);
+        } else {
+          await updateMutation({ id: todoId as any, text: trimmed });
+        }
+      } catch (err) {
+        console.error("Failed to update todo:", err);
       } finally {
         setIsUpdating(false);
         setIsEditing(false);
@@ -45,12 +93,12 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
   return (
     <View style={[styles.todoItem, isUpdating && styles.updating]}>
       <TouchableOpacity
-        style={[styles.checkbox, todo.completed && styles.checkboxChecked]}
-        onPress={() => !isUpdating && onToggle(todo.id, !todo.completed)}
+        style={[styles.checkbox, isCompleted && styles.checkboxChecked]}
+        onPress={handleToggle}
         disabled={isUpdating}
         activeOpacity={0.7}
       >
-        {todo.completed && <Text style={styles.checkmark}>✓</Text>}
+        {isCompleted && <Text style={styles.checkmark}>✓</Text>}
       </TouchableOpacity>
 
       {isEditing ? (
@@ -67,14 +115,14 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
       ) : (
         <TouchableOpacity
           style={styles.textContainer}
-          onPress={() => !isUpdating && onToggle(todo.id, !todo.completed)}
+          onPress={handleToggle}
           onLongPress={() => !isUpdating && setIsEditing(true)}
           activeOpacity={0.7}
         >
           <Text
             style={[
               styles.todoText,
-              todo.completed && styles.todoTextCompleted,
+              isCompleted && styles.todoTextCompleted,
             ]}
             numberOfLines={3}
           >
@@ -103,7 +151,7 @@ export function TodoItem({ todo, onToggle, onDelete, onEdit }: TodoItemProps) {
             )}
             <TouchableOpacity
               style={[styles.actionBtn, styles.deleteBtn]}
-              onPress={() => onDelete(todo.id)}
+              onPress={handleDelete}
               disabled={isUpdating}
               activeOpacity={0.6}
             >

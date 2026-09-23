@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Keyboard,
@@ -9,17 +9,17 @@ import {
   View,
 } from "react-native";
 
-interface TodoFormProps {
-  onAdd: (text: string) => Promise<void>;
-  loading: boolean;
+export interface TodoFormProps {
+  onAdd: (text: string) => Promise<any> | any;
+  loading?: boolean;
 }
 
-export function TodoForm({ onAdd, loading }: TodoFormProps) {
+export function TodoForm({ onAdd, loading = false }: TodoFormProps) {
   const [text, setText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  const isDisabled = !text.trim() || loading || isSubmitting;
+  const isDisabled = !text.trim() || isSubmitting || loading;
 
   const handleSubmit = async () => {
     const trimmed = text.trim();
@@ -36,19 +36,21 @@ export function TodoForm({ onAdd, loading }: TodoFormProps) {
     }
   };
 
+  const busy = isSubmitting || loading;
+
   return (
     <View style={styles.todoForm}>
       <TextInput
         style={[
           styles.todoInput,
           isFocused && styles.todoInputFocused,
-          (loading || isSubmitting) && styles.todoInputDisabled,
+          busy && styles.todoInputDisabled,
         ]}
         placeholder="Що потрібно зробити?"
         placeholderTextColor="#94a3b8"
         value={text}
         onChangeText={setText}
-        editable={!loading && !isSubmitting}
+        editable={!busy}
         maxLength={120}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
@@ -61,7 +63,7 @@ export function TodoForm({ onAdd, loading }: TodoFormProps) {
         disabled={isDisabled}
         activeOpacity={0.8}
       >
-        {isSubmitting ? (
+        {busy ? (
           <View style={styles.btnContent}>
             <ActivityIndicator size="small" color="#ffffff" style={styles.spinner} />
             <Text style={styles.todoAddBtnText}>Додаємо...</Text>
@@ -80,7 +82,7 @@ const styles = StyleSheet.create({
   todoForm: {
     flexDirection: "row",
     gap: 10,
-    marginBottom: 24,
+    marginBottom: 20,
     alignItems: "center",
   },
   todoInput: {
