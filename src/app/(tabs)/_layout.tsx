@@ -1,14 +1,20 @@
-import { Tabs } from "expo-router";
+import { ThemeColors, useTheme } from "@/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 import { Platform, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabsLayout() {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const styles = createStyles(colors, insets.bottom);
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#6366f1",
-        tabBarInactiveTintColor: "#94a3b8",
+        tabBarActiveTintColor: colors.tabBarActive,
+        tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
       }}
@@ -56,22 +62,30 @@ export default function TabsLayout() {
   );
 }
 
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: "#ffffff",
-    borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
-    height: Platform.OS === "ios" ? 88 : 65,
-    paddingBottom: Platform.OS === "ios" ? 28 : 10,
-    paddingTop: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  tabBarLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-});
+const createStyles = (colors: ThemeColors, bottomInset: number = 0) => {
+  const safeBottom = Math.max(bottomInset, Platform.OS === "ios" ? 28 : 10);
+  const barHeight = Platform.OS === "ios" ? 60 + safeBottom : 62 + safeBottom;
+
+  return StyleSheet.create({
+    tabBar: {
+      backgroundColor: colors.tabBarBg,
+      borderTopWidth: 1,
+      borderTopColor: colors.tabBarBorder,
+      height: barHeight,
+      paddingBottom: safeBottom,
+      paddingTop: 8,
+      shadowColor: colors.cardShadow,
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    tabBarLabel: {
+      fontSize: 12,
+      fontWeight: "600",
+    },
+  });
+};
+
+
+

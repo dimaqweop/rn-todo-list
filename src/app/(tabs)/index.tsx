@@ -1,4 +1,9 @@
-import React from "react";
+import { Header } from "@/components/Header";
+import { TodoForm } from "@/components/TodoForm";
+import { TodoList } from "@/components/TodoList";
+import { ThemeColors, useTheme } from "@/context/ThemeContext";
+import { api } from "@/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import {
   ActivityIndicator,
   Alert,
@@ -9,13 +14,11 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Header } from "@/components/Header";
-import { TodoForm } from "@/components/TodoForm";
-import { TodoList } from "@/components/TodoList";
 
 export default function Index() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   const todos = useQuery(api.todos.getTodos);
 
   const addTodo = useMutation(api.todos.createTodo);
@@ -60,7 +63,7 @@ export default function Index() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -75,8 +78,10 @@ export default function Index() {
 
           {todos === undefined ? (
             <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color="#6366f1" />
-              <Text style={styles.loadingText}>Синхронізація з Convex...</Text>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.loadingText}>
+                Синхронізація з Convex...
+              </Text>
             </View>
           ) : (
             <View style={styles.listWrapper}>
@@ -94,45 +99,46 @@ export default function Index() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#f5f7fb",
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    width: "100%",
-    maxWidth: 600,
-    alignSelf: "center",
-  },
-  card: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 4,
-  },
-  centerContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 40,
-  },
-  loadingText: {
-    marginTop: 12,
-    color: "#64748b",
-    fontSize: 14,
-  },
-  listWrapper: {
-    flex: 1,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    container: {
+      flex: 1,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      width: "100%",
+      maxWidth: 600,
+      alignSelf: "center",
+    },
+    card: {
+      flex: 1,
+      borderRadius: 16,
+      paddingHorizontal: 20,
+      paddingVertical: 20,
+      borderWidth: 1,
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      shadowColor: colors.cardShadow,
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.08,
+      shadowRadius: 20,
+      elevation: 4,
+    },
+    centerContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 40,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    listWrapper: {
+      flex: 1,
+    },
+  });

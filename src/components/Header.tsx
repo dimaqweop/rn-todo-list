@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { ThemeColors, useTheme } from "@/context/ThemeContext";
 
 interface HeaderProps {
   totalCount: number;
@@ -7,6 +8,9 @@ interface HeaderProps {
 }
 
 export function Header({ totalCount, completedCount }: HeaderProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   return (
     <View style={styles.appHeader}>
       <View style={styles.headerTitleGroup}>
@@ -24,30 +28,31 @@ export function Header({ totalCount, completedCount }: HeaderProps) {
 
 export default Header;
 
-const styles = StyleSheet.create({
-  appHeader: {
-    marginBottom: 20,
-    alignItems: "center",
-  },
-  headerTitleGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    marginBottom: 6,
-  },
-  headerIcon: {
-    fontSize: 26,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#1e293b",
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    color: "#64748b",
-    fontSize: 14,
-    fontWeight: "400",
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    appHeader: {
+      marginBottom: 20,
+      alignItems: "center",
+    },
+    headerTitleGroup: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+      marginBottom: 6,
+    },
+    headerIcon: {
+      fontSize: 26,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: "700",
+      color: colors.text,
+      letterSpacing: -0.5,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      fontWeight: "400",
+      color: colors.textMuted,
+    },
+  });

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { ThemeColors, useTheme } from "@/context/ThemeContext";
 
 export interface TodoFormProps {
   onAdd: (text: string) => Promise<any> | any;
@@ -15,6 +16,9 @@ export interface TodoFormProps {
 }
 
 export function TodoForm({ onAdd, loading = false }: TodoFormProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+
   const [text, setText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -47,7 +51,7 @@ export function TodoForm({ onAdd, loading = false }: TodoFormProps) {
           busy && styles.todoInputDisabled,
         ]}
         placeholder="Що потрібно зробити?"
-        placeholderTextColor="#94a3b8"
+        placeholderTextColor={colors.textPlaceholder}
         value={text}
         onChangeText={setText}
         editable={!busy}
@@ -65,7 +69,11 @@ export function TodoForm({ onAdd, loading = false }: TodoFormProps) {
       >
         {busy ? (
           <View style={styles.btnContent}>
-            <ActivityIndicator size="small" color="#ffffff" style={styles.spinner} />
+            <ActivityIndicator
+              size="small"
+              color={colors.primaryText}
+              style={styles.spinner}
+            />
             <Text style={styles.todoAddBtnText}>Додаємо...</Text>
           </View>
         ) : (
@@ -78,61 +86,62 @@ export function TodoForm({ onAdd, loading = false }: TodoFormProps) {
 
 export default TodoForm;
 
-const styles = StyleSheet.create({
-  todoForm: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 20,
-    alignItems: "center",
-  },
-  todoInput: {
-    flex: 1,
-    height: 48,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    borderWidth: 1.5,
-    borderColor: "#e2e8f0",
-    borderRadius: 10,
-    backgroundColor: "#f8fafc",
-    color: "#1e293b",
-  },
-  todoInputFocused: {
-    borderColor: "#6366f1",
-    backgroundColor: "#ffffff",
-  },
-  todoInputDisabled: {
-    opacity: 0.7,
-  },
-  todoAddBtn: {
-    height: 48,
-    paddingHorizontal: 20,
-    backgroundColor: "#6366f1",
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#6366f1",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  todoAddBtnDisabled: {
-    opacity: 0.5,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  btnContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  spinner: {
-    marginRight: 6,
-  },
-  todoAddBtnText: {
-    color: "#ffffff",
-    fontWeight: "600",
-    fontSize: 15,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    todoForm: {
+      flexDirection: "row",
+      gap: 10,
+      marginBottom: 20,
+      alignItems: "center",
+    },
+    todoInput: {
+      flex: 1,
+      height: 48,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 16,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: 10,
+      backgroundColor: colors.surfaceSubtle,
+      color: colors.text,
+    },
+    todoInputFocused: {
+      borderColor: colors.borderFocus,
+      backgroundColor: colors.surface,
+    },
+    todoInputDisabled: {
+      opacity: 0.7,
+    },
+    todoAddBtn: {
+      height: 48,
+      paddingHorizontal: 20,
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    todoAddBtnDisabled: {
+      opacity: 0.5,
+      shadowOpacity: 0,
+      elevation: 0,
+    },
+    btnContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    spinner: {
+      marginRight: 6,
+    },
+    todoAddBtnText: {
+      color: colors.primaryText,
+      fontWeight: "600",
+      fontSize: 15,
+    },
+  });
