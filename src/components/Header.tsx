@@ -1,6 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { ThemeColors, useTheme } from "@/context/ThemeContext";
+import { api } from "@/convex/_generated/api";
+import { useQuery } from "convex/react";
 
 interface HeaderProps {
   totalCount: number;
@@ -10,12 +12,15 @@ interface HeaderProps {
 export function Header({ totalCount, completedCount }: HeaderProps) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
+  const user = useQuery(api.users.currentUser);
 
   return (
     <View style={styles.appHeader}>
       <View style={styles.headerTitleGroup}>
         <Text style={styles.headerIcon}>📝</Text>
-        <Text style={styles.headerTitle}>Мій Список Завдань</Text>
+        <Text style={styles.headerTitle}>
+          {user?.name ? `Привіт, ${user.name}!` : "Мій Список Завдань"}
+        </Text>
       </View>
       <Text style={styles.headerSubtitle}>
         {totalCount > 0

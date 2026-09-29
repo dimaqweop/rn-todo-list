@@ -1,65 +1,91 @@
-import { query, mutation } from "./_generated/server";
-import { v, ConvexError } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { ConvexError, v } from "convex/values";
+import { mutation, query } from "./_generated/server";
 
-// 1. Отримання всіх завдань (від новіших до старіших)
+// 1. Отримання завдань ТІЛЬКИ поточного авторизованого користувача
 export const getTodos = query({
   args: {},
   handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      return [];
+    }
+
     return await ctx.db
       .query("todos")
-      .withIndex("by_creation_time")
+      .withIndex("by_user_creation", (q) => q.eq("userId", userId))
       .order("desc")
       .collect();
   },
 });
 
-// 2. Отримання аналітики продуктивності (для вкладки Статистика)
+// 2. Персональна статистика поточного користувача
 export const getStats = query({
   args: {},
   handler: async (ctx) => {
-    const allTodos = await ctx.db.query("todos").collect();
-    const total = allTodos.length;
-    const completed = allTodos.filter((t) => t.isCompleted).length;
-    const active = total - completed;
-    const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      return { total: 0, completed: 0, active: 0, percentage: 0, completionRate: 0 };
+    }
 
-    return {
-      total,
-      completed,
-      active,
-      percentage,
-    };
+    const todos = await ctx.db
+      .query("todos")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+
+    const total = todos.length;
+    const completed = todos.filter((t) => t.isCompleted).length;
+    const active = total - completed;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const percentage = completionRate;
+
+    return { total, completed, active, percentage, completionRate };
   },
 });
 
-// 3. Створення нового завдання
+// 3. Створення нового завдання для поточного користувача
 export const createTodo = mutation({
   args: {
     text: v.string(),
   },
   handler: async (ctx, args) => {
-    const trimmedText = args.text.trim();
-    if (trimmedText.length === 0) {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("Необхідно авторизуватися для створення завдань");
+    }
+
+    const cleanText = args.text.trim();
+    if (!cleanText) {
       throw new ConvexError("Текст завдання не може бути порожнім");
     }
 
     return await ctx.db.insert("todos", {
-      text: trimmedText,
+      userId,
+      text: cleanText,
       isCompleted: false,
       createdAt: Date.now(),
     });
   },
 });
 
-// 4. Перемикання статусу виконання
+// 4. Перемикання статусу завдання (з перевіркою власника)
 export const toggleTodo = mutation({
   args: {
     id: v.id("todos"),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("Не авторизовано");
+    }
+
     const todo = await ctx.db.get(args.id);
     if (!todo) {
       throw new ConvexError("Завдання не знайдено");
+    }
+
+    if (todo.userId !== userId) {
+      throw new ConvexError("Немає доступу до редагування цього завдання");
     }
 
     await ctx.db.patch(args.id, {
@@ -68,41 +94,65 @@ export const toggleTodo = mutation({
   },
 });
 
-// 5. Оновлення тексту завдання
+// 5. Оновлення тексту завдання (з перевіркою власника)
 export const updateTodo = mutation({
   args: {
     id: v.id("todos"),
     text: v.string(),
   },
   handler: async (ctx, args) => {
-    const trimmed = args.text.trim();
-    if (trimmed.length === 0) {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("Не авторизовано");
+    }
+
+    const todo = await ctx.db.get(args.id);
+    if (!todo || todo.userId !== userId) {
+      throw new ConvexError("Завдання не знайдено або доступ заборонено");
+    }
+
+    const cleanText = args.text.trim();
+    if (!cleanText) {
       throw new ConvexError("Текст завдання не може бути порожнім");
     }
 
-    await ctx.db.patch(args.id, {
-      text: trimmed,
-    });
+    await ctx.db.patch(args.id, { text: cleanText });
   },
 });
 
-// 6. Видалення одного завдання
+// 6. Видалення завдання (з перевіркою власника)
 export const deleteTodo = mutation({
   args: {
     id: v.id("todos"),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("Не авторизовано");
+    }
+
+    const todo = await ctx.db.get(args.id);
+    if (!todo || todo.userId !== userId) {
+      throw new ConvexError("Завдання не знайдено або доступ заборонено");
+    }
+
     await ctx.db.delete(args.id);
   },
 });
 
-// 7. Видалення всіх завершених завдань
+// 7. Очищення виконаних завдань поточного користувача
 export const clearCompleted = mutation({
   args: {},
   handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("Не авторизовано");
+    }
+
     const completedTodos = await ctx.db
       .query("todos")
-      .withIndex("by_completion", (q) => q.eq("isCompleted", true))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("isCompleted"), true))
       .collect();
 
     for (const todo of completedTodos) {
@@ -113,14 +163,24 @@ export const clearCompleted = mutation({
   },
 });
 
-// 8. Видалення абсолютно всіх завдань
+// 8. Повне очищення всіх завдань поточного користувача
 export const clearAll = mutation({
   args: {},
   handler: async (ctx) => {
-    const all = await ctx.db.query("todos").collect();
-    for (const todo of all) {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("Не авторизовано");
+    }
+
+    const userTodos = await ctx.db
+      .query("todos")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+
+    for (const todo of userTodos) {
       await ctx.db.delete(todo._id);
     }
-    return { deletedCount: all.length };
+
+    return { deletedCount: userTodos.length };
   },
 });

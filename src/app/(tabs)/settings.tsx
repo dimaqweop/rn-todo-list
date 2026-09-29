@@ -1,7 +1,10 @@
 import { ThemeColors, useTheme } from "@/context/ThemeContext";
 import { api } from "@/convex/_generated/api";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation } from "convex/react";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useMutation, useQuery } from "convex/react";
+import { useRouter } from "expo-router";
 import {
   Alert,
   ScrollView,
@@ -17,8 +20,26 @@ export default function SettingsScreen() {
   const { isDarkMode, colors, toggleTheme } = useTheme();
   const styles = createStyles(colors);
 
+  const { signOut } = useAuthActions();
+  const router = useRouter();
+  const user = useQuery(api.users.currentUser);
+
   const clearCompleted = useMutation(api.todos.clearCompleted);
   const clearAll = useMutation(api.todos.clearAll);
+
+  const handleSignOut = () => {
+    Alert.alert("Вихід з акаунта", "Ви впевнені, що хочете вийти з додатку?", [
+      { text: "Скасувати", style: "cancel" },
+      {
+        text: "Вийти",
+        style: "destructive",
+        onPress: async () => {
+          await signOut();
+          router.replace("/sign-in" as any);
+        },
+      },
+    ]);
+  };
 
   const handleClearCompleted = () => {
     Alert.alert(
@@ -32,7 +53,7 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               const res = await clearCompleted();
-              Alert.alert("Успішно", `Видалено ${res.deletedCount} завдань`);
+              Alert.alert("Успішно", `Видалено ${res?.deletedCount ?? 0} завдань`);
             } catch (err) {
               Alert.alert("Помилка", "Не вдалося очистити виконані завдання");
               console.error(err);
@@ -57,7 +78,7 @@ export default function SettingsScreen() {
               const res = await clearAll();
               Alert.alert(
                 "Успішно",
-                `Базу очищено. Видалено ${res.deletedCount} завдань`
+                `Базу очищено. Видалено ${res?.deletedCount ?? 0} завдань`
               );
             } catch (err) {
               Alert.alert("Помилка", "Не вдалося очистити базу даних");
@@ -75,6 +96,33 @@ export default function SettingsScreen() {
         <View style={styles.headerTitleGroup}>
           <Ionicons name="settings" size={26} color={colors.primary} />
           <Text style={styles.title}>Налаштування</Text>
+        </View>
+
+        {/* Картка користувача з кнопкою Sign Out */}
+        <View
+          style={[
+            styles.userCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={[styles.userAvatar, { backgroundColor: colors.primary }]}>
+            <MaterialIcons name="person" size={28} color="#FFFFFF" />
+          </View>
+          <View style={styles.userInfo}>
+            <Text style={[styles.userName, { color: colors.text }]}>
+              {user?.name ?? "Користувач"}
+            </Text>
+            <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
+              {user?.email ?? ""}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.signOutBtn}
+            onPress={handleSignOut}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <MaterialIcons name="logout" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         {/* Секція оформлення */}
@@ -186,6 +234,42 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: "700",
       color: colors.text,
     },
+    userCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      marginBottom: 20,
+      shadowColor: colors.cardShadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    userAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      justifyContent: "center",
+      alignItems: "center",
+      marginRight: 14,
+    },
+    userInfo: {
+      flex: 1,
+      gap: 2,
+    },
+    userName: {
+      fontSize: 16,
+      fontWeight: "700",
+    },
+    userEmail: {
+      fontSize: 13,
+    },
+    signOutBtn: {
+      padding: 8,
+      borderRadius: 10,
+    },
     sectionHeader: {
       fontSize: 12,
       fontWeight: "700",
@@ -249,5 +333,3 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.danger,
     },
   });
-
-

@@ -37,6 +37,9 @@ export interface ThemeColors {
   // Backward compatibility aliases
   surfaceHighlight?: string;
   dangerDisabled?: string;
+  background: string;
+  card: string;
+  textSecondary: string;
 }
 
 export const lightColors: ThemeColors = {
@@ -68,6 +71,9 @@ export const lightColors: ThemeColors = {
   statusBarStyle: "dark",
   surfaceHighlight: "#e2e8f0",
   dangerDisabled: "#9ca3af",
+  background: "#f5f7fb",
+  card: "#ffffff",
+  textSecondary: "#64748b",
 };
 
 export const darkColors: ThemeColors = {
@@ -99,6 +105,9 @@ export const darkColors: ThemeColors = {
   statusBarStyle: "light",
   surfaceHighlight: "#334155",
   dangerDisabled: "#475569",
+  background: "#0f172a",
+  card: "#1e293b",
+  textSecondary: "#94a3b8",
 };
 
 interface ThemeContextType {
